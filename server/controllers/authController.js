@@ -11,6 +11,8 @@ exports.register = async (req, res) => {
   try {
     const { email, password, userType = 'user' } = req.body;
 
+    console.log('Registration request:', { email, userType, hasPassword: !!password });
+
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
@@ -27,7 +29,11 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await User.create({ email, password: hashedPassword, userType });
+    const userData = { email, password: hashedPassword, userType };
+    console.log('Creating user with data:', userData);
+
+    const user = await User.create(userData);
+    console.log('User created:', { id: user._id, email: user.email, userType: user.userType });
 
     const token = generateToken(user._id);
     return res.status(201).json({
@@ -36,6 +42,7 @@ exports.register = async (req, res) => {
       token,
     });
   } catch (error) {
+    console.error('Registration error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -43,6 +50,8 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    console.log('Login request for:', email);
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
@@ -52,6 +61,8 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    console.log('Found user:', { id: user._id, email: user.email, userType: user.userType });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -65,6 +76,7 @@ exports.login = async (req, res) => {
       token,
     });
   } catch (error) {
+    console.error('Login error:', error);
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

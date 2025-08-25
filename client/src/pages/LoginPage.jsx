@@ -26,21 +26,34 @@ export default function LoginPage() {
         ? { email, password }
         : { email, password, userType }
       
+      console.log('Sending request to:', endpoint, 'with payload:', payload)
+      
       const { data } = await api.post(endpoint, payload)
+      console.log('Response received:', data)
+      
       const token = data?.token
       if (token) {
         localStorage.setItem('token', token)
         localStorage.setItem('email', data?.user?.email || email)
         localStorage.setItem('userType', data?.user?.userType || userType)
         
+        console.log('Stored in localStorage:', {
+          token: !!token,
+          email: data?.user?.email || email,
+          userType: data?.user?.userType || userType
+        })
+        
         // Redirect based on user type
         if (data?.user?.userType === 'rescue_team') {
+          console.log('Redirecting to dashboard')
           navigate('/dashboard')
         } else {
+          console.log('Redirecting to home')
           navigate('/')
         }
       }
     } catch (err) {
+      console.error('Login/Register error:', err)
       const msg = err?.response?.data?.message || 'Request failed'
       setError(msg)
     } finally {
