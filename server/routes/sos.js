@@ -7,13 +7,39 @@ const SOSRequest = require('../models/SOSRequest');
 // Create a new SOS request (any authenticated user)
 router.post('/', authenticateJwt, async (req, res) => {
   try {
-    const { message = '', latitude, longitude, userEmail } = req.body;
+    const { 
+      message = '', 
+      latitude, 
+      longitude, 
+      userEmail,
+      name,
+      contact,
+      peopleCount,
+      disasterType,
+      manualLocation,
+      extraInfo
+    } = req.body;
 
     if (typeof latitude !== 'number' || typeof longitude !== 'number' || !userEmail) {
       return res.status(400).json({ message: 'latitude, longitude, and userEmail are required' });
     }
 
-    const sos = await SOSRequest.create({ message, latitude, longitude, userEmail });
+    if (!peopleCount || !disasterType) {
+      return res.status(400).json({ message: 'peopleCount and disasterType are required' });
+    }
+
+    const sos = await SOSRequest.create({ 
+      message, 
+      latitude, 
+      longitude, 
+      userEmail,
+      name,
+      contact,
+      peopleCount,
+      disasterType,
+      manualLocation,
+      extraInfo
+    });
 
     // Emit real-time event to all connected clients
     if (req.io) {
