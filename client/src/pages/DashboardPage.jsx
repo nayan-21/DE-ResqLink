@@ -6,6 +6,7 @@ import { io } from 'socket.io-client'
 export default function DashboardPage() {
   const [items, setItems] = useState([])
   const [error, setError] = useState('')
+  const [addresses, setAddresses] = useState({})
   const navigate = useNavigate()
 
   const userType = localStorage.getItem('userType')
@@ -44,6 +45,18 @@ export default function DashboardPage() {
     return 'bg-gray-100 text-gray-800 border-gray-200'
   }
 
+  // Fetch human-readable address for given coordinates and cache in state
+  const fetchAddress = async (requestId, lat, lon) => {
+    try {
+      if (requestId == null || lat == null || lon == null) return
+      const { data } = await api.get('/api/location', { params: { lat, lon } })
+      const addressText = data?.address || 'Address unavailable'
+      setAddresses((prev) => ({ ...prev, [requestId]: addressText }))
+    } catch (e) {
+      setAddresses((prev) => ({ ...prev, [requestId]: 'Address unavailable' }))
+    }
+  }
+
   useEffect(() => {
     let active = true
 
@@ -51,7 +64,8 @@ export default function DashboardPage() {
       try {
         const { data } = await api.get('/api/sos')
         if (!active) return
-        setItems(Array.isArray(data) ? data : [])
+        const list = Array.isArray(data) ? data : []
+        setItems(list)
       } catch (err) {
         if (!active) return
         const msg = err?.response?.data?.message || 'Failed to fetch SOS requests'
@@ -70,6 +84,10 @@ export default function DashboardPage() {
 
     socket.on('newSOSRequest', (payload) => {
       setItems((prev) => [payload, ...prev])
+      const requestId = payload?._id || `${payload?.latitude}-${payload?.longitude}-${payload?.timestamp}`
+      if (payload?.latitude != null && payload?.longitude != null) {
+        fetchAddress(requestId, payload.latitude, payload.longitude)
+      }
     })
 
     socket.on('disconnect', () => {
@@ -81,6 +99,17 @@ export default function DashboardPage() {
       socket.disconnect()
     }
   }, [])
+
+  // Ensure addresses are fetched for all visible items
+  useEffect(() => {
+    if (!Array.isArray(items)) return
+    items.forEach((it) => {
+      const requestId = it?._id || `${it?.latitude}-${it?.longitude}-${it?.timestamp}`
+      if (requestId && addresses[requestId] == null && it?.latitude != null && it?.longitude != null) {
+        fetchAddress(requestId, it.latitude, it.longitude)
+      }
+    })
+  }, [items])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -258,6 +287,16 @@ export default function DashboardPage() {
                       Location Details
                     </h4>
                     <div className="space-y-3">
+                      {/* <div className="flex items-center text-sm text-gray-700">
+                        <span className="font-semibold w-20 text-gray-600">Address:</span>
+                        <span className="text-gray-700">
+                          {(() => {
+                            const requestId = item._id || `${item.latitude}-${item.longitude}-${item.timestamp}`
+                            const addr = addresses[requestId]
+                            return addr ? addr : 'Fetching address...'
+                          })()}
+                        </span>
+                      </div> */}
                       <div className="flex items-center text-sm text-gray-700">
                         <span className="font-semibold w-20 text-gray-600">Coordinates:</span>
                         <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
@@ -308,9 +347,20 @@ export default function DashboardPage() {
                   <button className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors duration-200 shadow-sm">
                     Accept Request
                   </button>
-                  <button className="flex-1 bg-gray-600 text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors duration-200 shadow-sm">
+                  <a
+                    className="flex-1 bg-gray-600 text-white px-4 py-3 rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors duration-200 shadow-sm text-center"
+                    href={`https://www.google.com/maps/search/?api=1&query=${item.latitude},${item.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     View on Map
-                  </button>
+                  </a>
+                  <a
+                    className="flex-1 bg-gray-100 text-gray-800 px-4 py-3 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors duration-200 shadow-sm text-center border"
+                    href={`/map?lat=${item.latitude}&lon=${item.longitude}&label=${encodeURIComponent('Rescue Location')}`}
+                  >
+                    Live Map
+                  </a>
                 </div>
               </div>
             ))}

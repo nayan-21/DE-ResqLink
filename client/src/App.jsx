@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import HomePage from './pages/HomePage'
 import DashboardPage from './pages/DashboardPage'
+import MapPage from './pages/MapPage'
 
 function ProtectedRoute({ children, requireRescueTeam = false }) {
   const token = localStorage.getItem('token')
@@ -36,6 +37,14 @@ function App() {
           element={
             <ProtectedRoute requireRescueTeam={true}>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/map"
+          element={
+            <ProtectedRoute requireRescueTeam={true}>
+              <MapPage />
             </ProtectedRoute>
           }
         />

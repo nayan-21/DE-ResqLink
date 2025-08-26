@@ -9,6 +9,7 @@ dotenv.config();
 
 const usersRouter = require('./routes/users');
 const sosRouter = require('./routes/sos');
+const locationRouter = require('./routes/location');
 
 const app = express();
 const server = http.createServer(app);
@@ -36,6 +37,7 @@ app.use(express.json());
 
 app.use('/api/users', usersRouter);
 app.use('/api/sos', sosRouter);
+app.use('/api/location', locationRouter);
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = "mongodb+srv://testuser:Test%401234@cluster0.ts66lut.mongodb.net/test";
